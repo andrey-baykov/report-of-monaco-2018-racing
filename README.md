@@ -13,8 +13,8 @@ Package create a report from log files
 
 ## Examples
 ```commandline
-% python3 src/racing_report/report.py --files logs/ 
-% python3 src/racing_report/report.py --files logs/ --asc
-% python3 src/racing_report/report.py --files logs/ --desc
-% python3 src/racing_report/report.py --files logs/ --desc --driver Michael
+% python3 src/racing_report/report.py --files ./logs 
+% python3 src/racing_report/report.py --files ./logs --asc
+% python3 src/racing_report/report.py --files ./logs --desc
+% python3 src/racing_report/report.py --files ./logs --desc --driver Michael
 ```
