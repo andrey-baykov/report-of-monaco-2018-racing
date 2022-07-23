@@ -19,9 +19,14 @@ drivers = [('Lewis Hamilton', 'LHM'),
            ('Stoffel Vandoorne', 'SVM'),
            ('Sergey Sirotkin', 'SSW')]
 
-times = [('Carlos Sainz', 'CSR', 72, 950000),
-         ('Sebastian Vettel', 'SVF', 64, 415000)
+times = [('--file ../logs', 'Carlos Sainz', 'CSR', 72, 950000),
+         ('--file ../logs --driver Sebastian Vettel', 'Sebastian Vettel', 'SVF', 64, 415000)
          ]
+
+test_time = [(73.323, '1:13.323'),
+             (72.941, '1:12.941'),
+             (64.415, '1:04.415'),
+             (999999, 'Wrong data')]
 
 
 @pytest.mark.parametrize('test_input', test_arguments)
@@ -54,11 +59,17 @@ def test_get_driver_code(test_input, expected):
     assert rep.get_driver_code() == expected
 
 
-@pytest.mark.parametrize('test_input, code, sec, mils', times)
-def test_build_report(test_input, code, sec, mils):
-    test_args = '--file ../logs --driver "' + test_input + '"'
+@pytest.mark.parametrize('cli_args, test_input, code, sec, mils', times)
+def test_build_report(cli_args, test_input, code, sec, mils):
+    test_args = cli_args
     args = report.create_parser(test_args.split())
     rep = Report(args)
     rep.set_abbreviations()
     rep.build_report()
     assert rep.results_table[code]['time'].seconds == sec and rep.results_table[code]['time'].microseconds == mils
+
+
+@pytest.mark.parametrize('float_time, str_time', test_time)
+def test_convert_time_to_report_format(float_time, str_time):
+    assert Report.test_convert_time_to_report_format(float_time) == str_time
+

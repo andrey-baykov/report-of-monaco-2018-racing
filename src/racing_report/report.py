@@ -75,7 +75,37 @@ class Report:
             self.results_table[key]['time'] = end - start
 
     def print_report(self):
-        return self.build_report()
+        data_list = []
+        report_data = self.build_report()
+        for line in report_data:
+            name = line
+            time = report_data[line]['time']
+            if time.days < 0:
+                time_diff = 999999
+            else:
+                time_diff = float(str(time.seconds) + '.' + str(time.microseconds))
+            data_list.append(tuple([self.abbreviations[name][0], self.abbreviations[name][1],
+                                    time_diff, self.test_convert_time_to_report_format(time_diff)]))
+        if self.arguments.asc:
+            data_list.sort(key=lambda x: x[2], reverse=False)
+        else:
+            data_list.sort(key=lambda x: x[2], reverse=True)
+        return data_list
+
+    @staticmethod
+    def test_convert_time_to_report_format(time) -> str:
+        if time == 999999:
+            output = 'Wrong data'
+        else:
+            minutes = int(time // 60)
+            seconds = int(time - minutes * 60)
+            if len(str(seconds)) == 1:
+                zero = '0'
+            else:
+                zero = ''
+            microseconds = str(time).find('.')
+            output = str(minutes) + ':' + zero + str(seconds) + '.' + str(time)[microseconds + 1:]
+        return output
 
 
 def create_parser(args=None):
@@ -90,10 +120,35 @@ def create_parser(args=None):
     return parsed
 
 
+def max_length(array) -> list:
+    first_column = 0
+    second_column = 0
+    for line in array:
+        if len(line[0]) > first_column:
+            first_column = len(line[0])
+        if len(line[1]) > second_column:
+            second_column = len(line[1])
+    return [first_column, second_column]
+
+
 def main():
     args = create_parser()
     monaco_report = Report(args)
-    print(monaco_report.print_report())
+    report = monaco_report.print_report()
+    align = max_length(report)
+    counter = 0
+    prefix = ''
+    for line in report:
+        if counter == 15:
+            print('-' * 62)
+        if counter < 9:
+            prefix = ' '
+        else:
+            prefix = ''
+        align_name = ' ' * (align[0] - len(line[0]))
+        align_car = ' ' * (align[1] - len(line[1]))
+        print(f'{counter + 1}. {prefix}{line[0]} {align_name} |{line[1]} {align_car} |{line[3]}')
+        counter += 1
 
 
 if __name__ == '__main__':
