@@ -73,3 +73,17 @@ def test_build_report(cli_args, test_input, code, sec, mils):
 def test_convert_time_to_report_format(float_time, str_time):
     assert Report.test_convert_time_to_report_format(float_time) == str_time
 
+
+print_test_data = [('--file ../logs', '1.  Sebastian Vettel   |FERRARI                    |1:04.415'),
+                   ('--file ../logs --desc', '19. Lewis Hamilton     |MERCEDES                   |Wrong data')]
+
+
+@pytest.mark.parametrize('arguments, expected', print_test_data)
+def test_print_report(arguments, expected):
+    test_args = arguments
+    args = report.create_parser(test_args.split())
+    rep = Report(args)
+    rep.set_abbreviations()
+    rep.build_report()
+    result = rep.print_report()
+    assert result[0] == expected
