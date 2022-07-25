@@ -26,7 +26,7 @@ times = [('--file ../logs', 'Carlos Sainz', 'CSR', 72, 950000),
 test_time = [(73.323, '1:13.323'),
              (72.941, '1:12.941'),
              (64.415, '1:04.415'),
-             (999999, 'Wrong data')]
+             (None, 'Wrong data')]
 
 
 @pytest.mark.parametrize('test_input', test_arguments)
@@ -71,7 +71,7 @@ def test_build_report(cli_args, test_input, code, sec, mils):
 
 @pytest.mark.parametrize('float_time, str_time', test_time)
 def test_convert_time_to_report_format(float_time, str_time):
-    assert Report.test_convert_time_to_report_format(float_time) == str_time
+    assert Report.convert_time_to_report_format(float_time) == str_time
 
 
 print_test_data = [('--file ../logs', '1.  Sebastian Vettel   |FERRARI                    |1:04.415'),

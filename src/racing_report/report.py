@@ -1,4 +1,5 @@
 import argparse
+import os
 from datetime import datetime
 
 
@@ -24,9 +25,9 @@ class Report:
         :return: data in datetime format.
         """
 
-        date_time_str = line[3:26].replace('_', ' ')
-        date_time_obj = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S.%f')
-        return date_time_obj
+        line = line.strip()
+        date_time_str = datetime.strptime(line, '%Y-%m-%d_%H:%M:%S.%f')
+        return date_time_str
 
     @staticmethod
     def read_file(path) -> list:
@@ -46,10 +47,10 @@ class Report:
         :return: None.
         """
 
-        path = self.arguments.files + '/abbreviations.txt'
+        path = os.path.join(self.arguments.files, 'abbreviations.txt')
         file_abb = self.read_file(path)
         for line in file_abb:
-            line = line.replace('\n', '')
+            line = line.strip('\n')
             driver_info = line.split('_')
             self.abbreviations[driver_info[0]] = (driver_info[1], driver_info[2])
 
@@ -61,7 +62,7 @@ class Report:
 
         output = None
         driver_str = " ".join(self.arguments.driver[0])
-        driver_str = driver_str.replace('"', '')
+        driver_str = driver_str.strip('"')
         for driver_code in self.abbreviations:
             if self.abbreviations[driver_code][0] == driver_str:
                 output = driver_code
@@ -77,27 +78,29 @@ class Report:
         if self.arguments.driver:
             particular_driver = self.get_driver_code()
 
-        path_start = self.arguments.files + '/start.log'
+        path_start = os.path.join(self.arguments.files, 'start.log')
         file_start = self.read_file(path_start)
         for line in file_start:
             if line != '\n':
                 driver = line[:3]
+                time = line[3:]
                 if particular_driver is None:
                     self.results_table[driver] = {'start': None, 'end': None, 'time': None}
-                    self.results_table[driver]['start'] = self.lines_parser(line)
+                    self.results_table[driver]['start'] = self.lines_parser(time)
                 elif particular_driver == driver:
                     self.results_table[driver] = {'start': None, 'end': None, 'time': None}
-                    self.results_table[driver]['start'] = self.lines_parser(line)
+                    self.results_table[driver]['start'] = self.lines_parser(time)
 
-        path_end = self.arguments.files + '/end.log'
+        path_end = os.path.join(self.arguments.files, 'end.log')
         file_end = self.read_file(path_end)
         for line in file_end:
             if line != '\n':
                 driver = line[:3]
+                time = line[3:]
                 if particular_driver is None:
-                    self.results_table[driver]['end'] = self.lines_parser(line)
+                    self.results_table[driver]['end'] = self.lines_parser(time)
                 elif particular_driver == driver:
-                    self.results_table[driver]['end'] = self.lines_parser(line)
+                    self.results_table[driver]['end'] = self.lines_parser(time)
 
         self.time_calculation()
         return self.results_table
@@ -125,12 +128,12 @@ class Report:
             name = line
             time = report_data[line]['time']
             if time.days < 0:
-                time_diff = 999999
+                time_diff = None
             else:
                 time_diff = float(str(time.seconds) + '.' + str(time.microseconds))
             data_list.append(tuple([self.abbreviations[name][0], self.abbreviations[name][1],
-                                    time_diff, self.test_convert_time_to_report_format(time_diff)]))
-        data_list.sort(key=lambda x: x[2], reverse=False)
+                                    time_diff, self.convert_time_to_report_format(time_diff)]))
+        data_list.sort(key=lambda x: x[3], reverse=False)
 
         align = max_length(data_list)
         counter = 0
@@ -153,14 +156,14 @@ class Report:
         return output_report
 
     @staticmethod
-    def test_convert_time_to_report_format(time) -> str:
+    def convert_time_to_report_format(time) -> str:
         """Convert time format to print.
 
-        :param time: Time in float format (999999 for incorrect data).
+        :param time: Time in float format (None for incorrect data).
         :return: Time in string format 'min:sec.microseconds'.
         """
 
-        if time == 999999:
+        if time is None:
             output = 'Wrong data'
         else:
             minutes = int(time // 60)
