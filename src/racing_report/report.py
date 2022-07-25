@@ -68,10 +68,10 @@ class Report:
                 output = driver_code
         return output
 
-    def build_report(self) -> dict:
+    def build_report(self) -> list:
         """Function prepare data for report.
 
-        :return: dictionary with report data.
+        :return: list with report data.
         """
 
         particular_driver = None
@@ -103,7 +103,21 @@ class Report:
                     self.results_table[driver]['end'] = self.lines_parser(time)
 
         self.time_calculation()
-        return self.results_table
+
+        output = []
+        report_data = self.results_table
+        for line in report_data:
+            name = line
+            time = report_data[line]['time']
+            if time.days < 0:
+                time_diff = None
+            else:
+                time_diff = float(str(time.seconds) + '.' + str(time.microseconds))
+            output.append(tuple([self.abbreviations[name][0], self.abbreviations[name][1],
+                                 time_diff, self.convert_time_to_report_format(time_diff)]))
+        output.sort(key=lambda x: x[3], reverse=False)
+
+        return output
 
     def time_calculation(self) -> None:
         """Calculate difference between end and start time and write result to result table.
@@ -122,32 +136,31 @@ class Report:
         :return: report ready to print.
         """
 
-        data_list = []
-        report_data = self.build_report()
-        for line in report_data:
-            name = line
-            time = report_data[line]['time']
-            if time.days < 0:
-                time_diff = None
-            else:
-                time_diff = float(str(time.seconds) + '.' + str(time.microseconds))
-            data_list.append(tuple([self.abbreviations[name][0], self.abbreviations[name][1],
-                                    time_diff, self.convert_time_to_report_format(time_diff)]))
-        data_list.sort(key=lambda x: x[3], reverse=False)
-
-        align = max_length(data_list)
+        # data_list = []
+        # report_data = self.build_report()
+        # for line in report_data:
+        #     name = line
+        #     time = report_data[line]['time']
+        #     if time.days < 0:
+        #         time_diff = None
+        #     else:
+        #         time_diff = float(str(time.seconds) + '.' + str(time.microseconds))
+        #     data_list.append(tuple([self.abbreviations[name][0], self.abbreviations[name][1],
+        #                             time_diff, self.convert_time_to_report_format(time_diff)]))
+        # data_list.sort(key=lambda x: x[3], reverse=False)
+        data_list = self.build_report()
         counter = 0
         output_report = []
-        for line in data_list:
+        for name, team, f_time, str_time in data_list:
             if counter == 15:
                 output_report.append('---------------------------------------------------------------')
             if counter < 9:
                 prefix = ' '
             else:
                 prefix = ''
-            align_name = ' ' * (align[0] - len(line[0]))
-            align_car = ' ' * (align[1] - len(line[1]))
-            output_report.append(f'{counter + 1}. {prefix}{line[0]} {align_name} |{line[1]} {align_car} |{line[3]}')
+            align_name = ' ' * (max_length(data_list, 0) - len(name))
+            align_car = ' ' * (max_length(data_list, 1) - len(team))
+            output_report.append(f'{counter + 1}. {prefix}{name} {align_name} |{team} {align_car} |{str_time}')
             counter += 1
 
         if not self.arguments.asc:
@@ -195,21 +208,18 @@ def create_parser(args=None):
     return parsed
 
 
-def max_length(array) -> list:
-    """Calculate maximum length of driver name and car type columns in array.
+def max_length(array, column) -> int:
+    """Calculate maximum length of given data.
 
-    :param array: Array with drivers name and cars type.
-    :return: list with maximum lengths [max length of driver name, max length of car type].
+    :param array: Array with data.
+    :return: max length of given data.
     """
 
-    first_column = 0
-    second_column = 0
+    length = 0
     for line in array:
-        if len(line[0]) > first_column:
-            first_column = len(line[0])
-        if len(line[1]) > second_column:
-            second_column = len(line[1])
-    return [first_column, second_column]
+        if len(line[column]) > length:
+            length = len(line[column])
+    return length
 
 
 def main():
