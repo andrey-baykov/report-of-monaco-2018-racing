@@ -1,6 +1,16 @@
 import argparse
 import os
+from dataclasses import dataclass
 from datetime import datetime
+
+
+@dataclass
+class Driver:
+    def __init__(self):
+        abbr: str
+        name: str
+        team: str
+        time: str
 
 
 class Report:
@@ -15,7 +25,6 @@ class Report:
         self.arguments = args
         self.results_table = {}
         self.abbreviations = {}
-        self.set_abbreviations()
 
     @staticmethod
     def lines_parser(line) -> datetime:
@@ -46,13 +55,18 @@ class Report:
 
         :return: None.
         """
-
+        # self.arguments.files = '../../logs'
         path = os.path.join(self.arguments.files, 'abbreviations.txt')
         file_abb = self.read_file(path)
         for line in file_abb:
             line = line.strip('\n')
-            driver_info = line.split('_')
-            self.abbreviations[driver_info[0]] = (driver_info[1], driver_info[2])
+            line = line.split('_')
+            driver_info = Driver()
+            driver_info.abbr = line[0]
+            driver_info.name = line[1]
+            driver_info.team = line[2]
+            driver_info.time = None
+            self.abbreviations[driver_info.abbr] = driver_info
 
     def get_driver_code(self) -> str:
         """Return driver's code from driver's name in the input.
@@ -64,7 +78,7 @@ class Report:
         driver_str = " ".join(self.arguments.driver[0])
         driver_str = driver_str.strip('"')
         for driver_code in self.abbreviations:
-            if self.abbreviations[driver_code][0] == driver_str:
+            if self.abbreviations[driver_code].name == driver_str:
                 output = driver_code
         return output
 
@@ -73,23 +87,14 @@ class Report:
 
         :return: list with report data.
         """
-
-        particular_driver = None
-        if self.arguments.driver:
-            particular_driver = self.get_driver_code()
-
+        self.set_abbreviations()
         path_start = os.path.join(self.arguments.files, 'start.log')
         file_start = self.read_file(path_start)
         for line in file_start:
             if line != '\n':
                 driver = line[:3]
                 time = line[3:]
-                if particular_driver is None:
-                    self.results_table[driver] = {'start': None, 'end': None, 'time': None}
-                    self.results_table[driver]['start'] = self.lines_parser(time)
-                elif particular_driver == driver:
-                    self.results_table[driver] = {'start': None, 'end': None, 'time': None}
-                    self.results_table[driver]['start'] = self.lines_parser(time)
+                self.abbreviations[driver].time = self.lines_parser(time)
 
         path_end = os.path.join(self.arguments.files, 'end.log')
         file_end = self.read_file(path_end)
@@ -97,38 +102,20 @@ class Report:
             if line != '\n':
                 driver = line[:3]
                 time = line[3:]
-                if particular_driver is None:
-                    self.results_table[driver]['end'] = self.lines_parser(time)
-                elif particular_driver == driver:
-                    self.results_table[driver]['end'] = self.lines_parser(time)
-
-        self.time_calculation()
+                if self.lines_parser(time) >= self.abbreviations[driver].time:
+                    self.abbreviations[driver].time = self.lines_parser(time) - self.abbreviations[driver].time
+                else:
+                    self.abbreviations[driver].time = None
 
         output = []
-        report_data = self.results_table
+        report_data = self.abbreviations
         for line in report_data:
             name = line
-            time = report_data[line]['time']
-            if time.days < 0:
-                time_diff = None
-            else:
-                time_diff = float(str(time.seconds) + '.' + str(time.microseconds))
-            output.append(tuple([self.abbreviations[name][0], self.abbreviations[name][1],
-                                 time_diff, self.convert_time_to_report_format(time_diff)]))
-        output.sort(key=lambda x: x[3], reverse=False)
+            output.append(tuple([self.abbreviations[name].name, self.abbreviations[name].team,
+                                 self.convert_time_to_report_format(self.abbreviations[name].time)]))
+        output.sort(key=lambda x: x[2], reverse=False)
 
         return output
-
-    def time_calculation(self) -> None:
-        """Calculate difference between end and start time and write result to result table.
-
-        :return: None.
-        """
-
-        for key in self.results_table:
-            start = self.results_table[key]['start']
-            end = self.results_table[key]['end']
-            self.results_table[key]['time'] = end - start
 
     def print_report(self) -> list:
         """Format prepared report's data and print report.
@@ -136,22 +123,10 @@ class Report:
         :return: report ready to print.
         """
 
-        # data_list = []
-        # report_data = self.build_report()
-        # for line in report_data:
-        #     name = line
-        #     time = report_data[line]['time']
-        #     if time.days < 0:
-        #         time_diff = None
-        #     else:
-        #         time_diff = float(str(time.seconds) + '.' + str(time.microseconds))
-        #     data_list.append(tuple([self.abbreviations[name][0], self.abbreviations[name][1],
-        #                             time_diff, self.convert_time_to_report_format(time_diff)]))
-        # data_list.sort(key=lambda x: x[3], reverse=False)
         data_list = self.build_report()
         counter = 0
         output_report = []
-        for name, team, f_time, str_time in data_list:
+        for name, team, str_time in data_list:
             if counter == 15:
                 output_report.append('---------------------------------------------------------------')
             if counter < 9:
@@ -179,14 +154,15 @@ class Report:
         if time is None:
             output = 'Wrong data'
         else:
-            minutes = int(time // 60)
-            seconds = int(time - minutes * 60)
+            minutes = int(time.seconds // 60)
+            seconds = int(time.seconds - minutes * 60)
             if len(str(seconds)) == 1:
                 zero = '0'
             else:
                 zero = ''
-            microseconds = str(time).find('.')
-            output = str(minutes) + ':' + zero + str(seconds) + '.' + str(time)[microseconds + 1:]
+            microseconds_point = str(time).find('.')
+            microseconds = str(time)[microseconds_point + 1:]
+            output = str(minutes) + ':' + zero + str(seconds) + '.' + microseconds[:3]
         return output
 
 
@@ -211,6 +187,7 @@ def create_parser(args=None):
 def max_length(array, column) -> int:
     """Calculate maximum length of given data.
 
+    :param column: Column number for calculate
     :param array: Array with data.
     :return: max length of given data.
     """

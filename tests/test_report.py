@@ -1,4 +1,5 @@
 from unittest import mock
+from datetime import timedelta
 
 import pytest
 
@@ -23,9 +24,9 @@ times = [('--file ../logs', 'Carlos Sainz', 'CSR', 72, 950000),
          ('--file ../logs --driver Sebastian Vettel', 'Sebastian Vettel', 'SVF', 64, 415000)
          ]
 
-test_time = [(73.323, '1:13.323'),
-             (72.941, '1:12.941'),
-             (64.415, '1:04.415'),
+test_time = [(timedelta(seconds=73, microseconds=323000), '1:13.323'),
+             (timedelta(seconds=72, microseconds=941000), '1:12.941'),
+             (timedelta(seconds=64, microseconds=415000), '1:04.415'),
              (None, 'Wrong data')]
 
 
@@ -47,7 +48,8 @@ def test_set_abbreviations():
         args = report.create_parser(test_args.split())
         rep = Report(args)
         rep.set_abbreviations()
-        assert rep.abbreviations == {'CSR': ('Carlos Sainz', 'RENAULT')}
+        assert rep.abbreviations['CSR'].name == 'Carlos Sainz'
+        assert rep.abbreviations['CSR'].team == 'RENAULT'
 
 
 @pytest.mark.parametrize('test_input, expected', drivers)
@@ -66,7 +68,7 @@ def test_build_report(cli_args, test_input, code, sec, mils):
     rep = Report(args)
     rep.set_abbreviations()
     rep.build_report()
-    assert rep.results_table[code]['time'].seconds == sec and rep.results_table[code]['time'].microseconds == mils
+    assert rep.abbreviations[code].time.seconds == sec and rep.abbreviations[code].time.microseconds == mils
 
 
 @pytest.mark.parametrize('float_time, str_time', test_time)
@@ -75,7 +77,7 @@ def test_convert_time_to_report_format(float_time, str_time):
 
 
 print_test_data = [('--file ../logs', '1.  Sebastian Vettel   |FERRARI                    |1:04.415'),
-                   ('--file ../logs --desc', '19. Lewis Hamilton     |MERCEDES                   |Wrong data')]
+                   ('--file ../logs --desc', '19. Sergey Sirotkin    |WILLIAMS MERCEDES          |Wrong data')]
 
 
 @pytest.mark.parametrize('arguments, expected', print_test_data)
