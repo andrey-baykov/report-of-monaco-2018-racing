@@ -1,5 +1,5 @@
-from unittest import mock
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 
@@ -50,15 +50,6 @@ def test_set_abbreviations():
         rep.set_abbreviations()
         assert rep.abbreviations['CSR'].name == 'Carlos Sainz'
         assert rep.abbreviations['CSR'].team == 'RENAULT'
-
-
-@pytest.mark.parametrize('test_input, expected', drivers)
-def test_get_driver_code(test_input, expected):
-    test_args = '--file ../logs --driver "' + test_input + '"'
-    args = report.create_parser(test_args.split())
-    rep = Report(args)
-    rep.set_abbreviations()
-    assert rep.get_driver_code() == expected
 
 
 @pytest.mark.parametrize('cli_args, test_input, code, sec, mils', times)

@@ -6,11 +6,73 @@ from datetime import datetime
 
 @dataclass
 class Driver:
-    def __init__(self):
-        abbr: str
-        name: str
-        team: str
-        time: str
+    data = None
+
+    def __init__(self, data):
+        self.abbr = None
+        self.name = None
+        self.team = None
+        self.data = data
+
+    @property
+    def time(self):
+        """Calculate difference of time between start and end.
+
+        :return: difference of time or None if wrong data
+        """
+        path_start = os.path.join(self.data.files, 'start.log')
+        file_start = self.read_file(path_start)
+        start = self.lines_parser(self.extract_time(file_start, self.abbr))
+
+        path_end = os.path.join(self.data.files, 'end.log')
+        file_end = self.read_file(path_end)
+        end = self.lines_parser(self.extract_time(file_end, self.abbr))
+
+        diff = end - start
+
+        if diff is None or start > end:
+            output = None
+        else:
+            output = diff
+        return output
+
+    @staticmethod
+    def extract_time(array, value):
+        """Function extract time value from string
+
+        :param value: Data for filter
+        :param array: Data array
+        :return: Time in string format
+        """
+        output = None
+        for line in array:
+            if line != '\n' and line[:3] == value:
+                output = line[3:]
+        return output
+
+    @staticmethod
+    def read_file(path) -> list:
+        """Read data from file.
+
+        :param path: path to file.
+        :return: all data from the file.
+        """
+
+        with open(path, 'r') as f:
+            file_data = f.readlines()
+            return file_data
+
+    @staticmethod
+    def lines_parser(line) -> datetime:
+        """Convert string date and time data to datetime format.
+
+        :param line: input date and time in string format.
+        :return: data in datetime format.
+        """
+
+        line = line.strip()
+        date_time_str = datetime.strptime(line, '%Y-%m-%d_%H:%M:%S.%f')
+        return date_time_str
 
 
 class Report:
@@ -25,18 +87,6 @@ class Report:
         self.arguments = args
         self.results_table = {}
         self.abbreviations = {}
-
-    @staticmethod
-    def lines_parser(line) -> datetime:
-        """Convert string date and time data to datetime format.
-
-        :param line: input date and time in string format.
-        :return: data in datetime format.
-        """
-
-        line = line.strip()
-        date_time_str = datetime.strptime(line, '%Y-%m-%d_%H:%M:%S.%f')
-        return date_time_str
 
     @staticmethod
     def read_file(path) -> list:
@@ -55,31 +105,32 @@ class Report:
 
         :return: None.
         """
-        # self.arguments.files = '../../logs'
         path = os.path.join(self.arguments.files, 'abbreviations.txt')
         file_abb = self.read_file(path)
         for line in file_abb:
             line = line.strip('\n')
             line = line.split('_')
-            driver_info = Driver()
+            driver_info = Driver(self.arguments)
             driver_info.abbr = line[0]
             driver_info.name = line[1]
             driver_info.team = line[2]
-            driver_info.time = None
-            self.abbreviations[driver_info.abbr] = driver_info
+            if self.arguments.driver is None:
+                self.abbreviations[driver_info.abbr] = driver_info
+            elif self.get_driver_name(self.arguments.driver) == driver_info.name:
+                self.abbreviations[driver_info.abbr] = driver_info
 
-    def get_driver_code(self) -> str:
-        """Return driver's code from driver's name in the input.
+    @staticmethod
+    def get_driver_name(driver) -> str:
+        """Return driver's name in string format from driver's name in the input.
 
-        :return: driver code.
+        :return: driver name.
         """
 
         output = None
-        driver_str = " ".join(self.arguments.driver[0])
-        driver_str = driver_str.strip('"')
-        for driver_code in self.abbreviations:
-            if self.abbreviations[driver_code].name == driver_str:
-                output = driver_code
+        if driver is not None:
+            driver_str = " ".join(driver[0])
+            driver_str = driver_str.strip('"')
+            output = driver_str
         return output
 
     def build_report(self) -> list:
@@ -88,25 +139,6 @@ class Report:
         :return: list with report data.
         """
         self.set_abbreviations()
-        path_start = os.path.join(self.arguments.files, 'start.log')
-        file_start = self.read_file(path_start)
-        for line in file_start:
-            if line != '\n':
-                driver = line[:3]
-                time = line[3:]
-                self.abbreviations[driver].time = self.lines_parser(time)
-
-        path_end = os.path.join(self.arguments.files, 'end.log')
-        file_end = self.read_file(path_end)
-        for line in file_end:
-            if line != '\n':
-                driver = line[:3]
-                time = line[3:]
-                if self.lines_parser(time) >= self.abbreviations[driver].time:
-                    self.abbreviations[driver].time = self.lines_parser(time) - self.abbreviations[driver].time
-                else:
-                    self.abbreviations[driver].time = None
-
         output = []
         report_data = self.abbreviations
         for line in report_data:
@@ -114,7 +146,6 @@ class Report:
             output.append(tuple([self.abbreviations[name].name, self.abbreviations[name].team,
                                  self.convert_time_to_report_format(self.abbreviations[name].time)]))
         output.sort(key=lambda x: x[2], reverse=False)
-
         return output
 
     def print_report(self) -> list:
