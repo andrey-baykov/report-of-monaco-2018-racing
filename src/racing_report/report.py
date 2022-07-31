@@ -6,13 +6,13 @@ from datetime import datetime
 
 @dataclass
 class Driver:
-    data = None
 
-    def __init__(self, data):
+    def __init__(self):
         self.abbr = None
         self.name = None
         self.team = None
-        self.data = data
+        self.start = None
+        self.end = None
 
     @property
     def time(self):
@@ -20,35 +20,19 @@ class Driver:
 
         :return: difference of time or None if wrong data
         """
-        path_start = os.path.join(self.data.files, 'start.log')
-        file_start = self.read_file(path_start)
-        start = self.lines_parser(self.extract_time(file_start, self.abbr))
 
-        path_end = os.path.join(self.data.files, 'end.log')
-        file_end = self.read_file(path_end)
-        end = self.lines_parser(self.extract_time(file_end, self.abbr))
+        diff = self.end - self.start
 
-        diff = end - start
-
-        if diff is None or start > end:
+        if diff is None or self.start > self.end:
             output = None
         else:
             output = diff
         return output
 
-    @staticmethod
-    def extract_time(array, value):
-        """Function extract time value from string
-
-        :param value: Data for filter
-        :param array: Data array
-        :return: Time in string format
-        """
-        output = None
-        for line in array:
-            if line != '\n' and line[:3] == value:
-                output = line[3:]
-        return output
+    @time.setter
+    def time(self, value):
+        self.start = value[0]
+        self.end = value[1]
 
     @staticmethod
     def read_file(path) -> list:
@@ -59,7 +43,9 @@ class Driver:
         """
 
         with open(path, 'r') as f:
+            output = {}
             file_data = f.readlines()
+
             return file_data
 
     @staticmethod
@@ -87,6 +73,8 @@ class Report:
         self.arguments = args
         self.results_table = {}
         self.abbreviations = {}
+        self.start = {}
+        self.end = {}
 
     @staticmethod
     def read_file(path) -> list:
@@ -105,19 +93,41 @@ class Report:
 
         :return: None.
         """
+
         path = os.path.join(self.arguments.files, 'abbreviations.txt')
         file_abb = self.read_file(path)
         for line in file_abb:
             line = line.strip('\n')
-            line = line.split('_')
-            driver_info = Driver(self.arguments)
-            driver_info.abbr = line[0]
-            driver_info.name = line[1]
-            driver_info.team = line[2]
+            driver_info = Driver()
+            driver_info.abbr, driver_info.name, driver_info.team = line.split('_')
+            times = [self.start[driver_info.abbr], self.end[driver_info.abbr]]
+            driver_info.time = times
+
             if self.arguments.driver is None:
                 self.abbreviations[driver_info.abbr] = driver_info
             elif self.get_driver_name(self.arguments.driver) == driver_info.name:
                 self.abbreviations[driver_info.abbr] = driver_info
+
+    def load_times(self) -> None:
+        """Function read drivers abbreviation from the file and fill out class dictionary.
+
+        :return: None.
+        """
+
+        files = ('start.log', 'end.log')
+        for file_name in files:
+            path = os.path.join(self.arguments.files, file_name)
+            file_data = self.read_file(path)
+            for line in file_data:
+                line = line.strip('\n')
+                line = line.strip(' ')
+                if line != '':
+                    driver = line[:3]
+                    time = Driver.lines_parser(line[3:])
+                    if file_name == 'start.log':
+                        self.start[driver] = time
+                    else:
+                        self.end[driver] = time
 
     @staticmethod
     def get_driver_name(driver) -> str:
@@ -138,29 +148,32 @@ class Report:
 
         :return: list with report data.
         """
+        self.load_times()
         self.set_abbreviations()
+
         output = []
         report_data = self.abbreviations
         for line in report_data:
-            name = line
-            output.append(tuple([self.abbreviations[name].name, self.abbreviations[name].team,
-                                 self.convert_time_to_report_format(self.abbreviations[name].time)]))
-        output.sort(key=lambda x: x[2], reverse=False)
-        return output
+            driver = self.abbreviations[line]
+            output.append(tuple([driver.name, driver.team,
+                                 self.convert_time_to_report_format(driver.time)]))
+        output_data = sorted(output, key=lambda x: x[2])
+        return output_data
 
     def print_report(self) -> list:
         """Format prepared report's data and print report.
 
         :return: report ready to print.
         """
-
         data_list = self.build_report()
         counter = 0
         output_report = []
+        LINES_SEPARATOR = 15
+        ALIGNMENT_NUMBERS = 9
         for name, team, str_time in data_list:
-            if counter == 15:
+            if counter == LINES_SEPARATOR:
                 output_report.append('---------------------------------------------------------------')
-            if counter < 9:
+            if counter < ALIGNMENT_NUMBERS:
                 prefix = ' '
             else:
                 prefix = ''
@@ -197,7 +210,7 @@ class Report:
         return output
 
 
-def create_parser(args=None):
+def cli_parser(args=None):
     """Create command line parser.
 
     :param args: None - will read data from command line.
@@ -211,8 +224,8 @@ def create_parser(args=None):
     group.add_argument('--desc', action='store_const', dest='asc', const=False, help='Order by desc')
     parser.add_argument('--driver', nargs='*', action='append', help='Shows information only of particular driver')
     parser.set_defaults(asc=True)
-    parsed = parser.parse_args(args)
-    return parsed
+
+    return parser
 
 
 def max_length(array, column) -> int:
@@ -235,8 +248,7 @@ def main():
 
     :return: None.
     """
-
-    args = create_parser()
+    args = cli_parser().parse_args()
     monaco_report = Report(args)
     print(*monaco_report.print_report(), sep='\n')
 

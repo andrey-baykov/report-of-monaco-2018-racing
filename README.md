@@ -18,3 +18,4 @@ Package create a report from log files
 % python3 src/racing_report/report.py --files ./logs --desc
 % python3 src/racing_report/report.py --files ./logs --desc --driver Michael
 ```
+
