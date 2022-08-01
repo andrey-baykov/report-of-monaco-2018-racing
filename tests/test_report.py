@@ -69,7 +69,7 @@ def test_convert_time_to_report_format(float_time, str_time):
     assert Report.convert_time_to_report_format(float_time) == str_time
 
 
-print_test_data = [('--file ../logs', '1.  Sebastian Vettel   |FERRARI                    |1:04.415'),
+print_test_data = [('--file ../logs', ' 1. Sebastian Vettel   |FERRARI                    |1:04.415'),
                    ('--file ../logs --desc', '19. Sergey Sirotkin    |WILLIAMS MERCEDES          |Wrong data')]
 
 

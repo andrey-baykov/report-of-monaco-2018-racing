@@ -21,18 +21,11 @@ class Driver:
         :return: difference of time or None if wrong data
         """
 
-        diff = self.end - self.start
-
-        if diff is None or self.start > self.end:
+        if self.start is None or self.end is None or self.start > self.end:
             output = None
         else:
-            output = diff
+            output = self.end - self.start
         return output
-
-    @time.setter
-    def time(self, value):
-        self.start = value[0]
-        self.end = value[1]
 
     @staticmethod
     def read_file(path) -> list:
@@ -100,12 +93,10 @@ class Report:
             line = line.strip('\n')
             driver_info = Driver()
             driver_info.abbr, driver_info.name, driver_info.team = line.split('_')
-            times = [self.start[driver_info.abbr], self.end[driver_info.abbr]]
-            driver_info.time = times
+            driver_info.start = self.start[driver_info.abbr]
+            driver_info.end = self.end[driver_info.abbr]
 
-            if self.arguments.driver is None:
-                self.abbreviations[driver_info.abbr] = driver_info
-            elif self.get_driver_name(self.arguments.driver) == driver_info.name:
+            if self.arguments.driver is None or self.get_driver_name(self.arguments.driver) == driver_info.name:
                 self.abbreviations[driver_info.abbr] = driver_info
 
     def load_times(self) -> None:
@@ -169,17 +160,15 @@ class Report:
         counter = 0
         output_report = []
         LINES_SEPARATOR = 15
-        ALIGNMENT_NUMBERS = 9
+        # ALIGNMENT_NUMBERS = 9
         for name, team, str_time in data_list:
             if counter == LINES_SEPARATOR:
                 output_report.append('---------------------------------------------------------------')
-            if counter < ALIGNMENT_NUMBERS:
-                prefix = ' '
-            else:
-                prefix = ''
             align_name = ' ' * (max_length(data_list, 0) - len(name))
             align_car = ' ' * (max_length(data_list, 1) - len(team))
-            output_report.append(f'{counter + 1}. {prefix}{name} {align_name} |{team} {align_car} |{str_time}')
+            str_out = '{: >2}. '.format(counter + 1)
+            str_out += f'{name} {align_name} |{team} {align_car} |{str_time}'
+            output_report.append(str_out)
             counter += 1
 
         if not self.arguments.asc:
