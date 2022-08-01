@@ -105,8 +105,8 @@ class Report:
         :return: None.
         """
 
-        files = ('start.log', 'end.log')
-        for file_name in files:
+        params = (('start.log', self.start), ('end.log', self.end))
+        for file_name, obj in params:
             path = os.path.join(self.arguments.files, file_name)
             file_data = self.read_file(path)
             for line in file_data:
@@ -115,10 +115,7 @@ class Report:
                 if line != '':
                     driver = line[:3]
                     time = Driver.lines_parser(line[3:])
-                    if file_name == 'start.log':
-                        self.start[driver] = time
-                    else:
-                        self.end[driver] = time
+                    obj[driver] = time
 
     @staticmethod
     def get_driver_name(driver) -> str:
@@ -188,14 +185,10 @@ class Report:
             output = 'Wrong data'
         else:
             minutes = int(time.seconds // 60)
-            seconds = int(time.seconds - minutes * 60)
-            if len(str(seconds)) == 1:
-                zero = '0'
-            else:
-                zero = ''
+            seconds = "{:0>2}".format(int(time.seconds - minutes * 60))
             microseconds_point = str(time).find('.')
             microseconds = str(time)[microseconds_point + 1:]
-            output = str(minutes) + ':' + zero + str(seconds) + '.' + microseconds[:3]
+            output = str(minutes) + ':' + seconds + '.' + microseconds[:3]
         return output
 
 
