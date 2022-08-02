@@ -21,10 +21,10 @@ class Driver:
         :return: difference of time or None if wrong data
         """
 
-        if self.start is None or self.end is None or self.start > self.end:
-            output = None
-        else:
+        if self.start and self.end and self.start < self.end:
             output = self.end - self.start
+        else:
+            output = None
         return output
 
     @staticmethod
@@ -96,8 +96,7 @@ class Report:
             driver_info.start = self.start[driver_info.abbr]
             driver_info.end = self.end[driver_info.abbr]
 
-            if self.arguments.driver is None or self.get_driver_name(self.arguments.driver) == driver_info.name:
-                self.abbreviations[driver_info.abbr] = driver_info
+            self.abbreviations[driver_info.abbr] = driver_info
 
     def load_times(self) -> None:
         """Function read drivers abbreviation from the file and fill out class dictionary.
@@ -116,20 +115,6 @@ class Report:
                     driver = line[:3]
                     time = Driver.lines_parser(line[3:])
                     obj[driver] = time
-
-    @staticmethod
-    def get_driver_name(driver) -> str:
-        """Return driver's name in string format from driver's name in the input.
-
-        :return: driver name.
-        """
-
-        output = None
-        if driver is not None:
-            driver_str = " ".join(driver[0])
-            driver_str = driver_str.strip('"')
-            output = driver_str
-        return output
 
     def build_report(self) -> list:
         """Function prepare data for report.
@@ -157,16 +142,19 @@ class Report:
         counter = 0
         output_report = []
         LINES_SEPARATOR = 15
-        # ALIGNMENT_NUMBERS = 9
+        max_str_len = 0
         for name, team, str_time in data_list:
-            if counter == LINES_SEPARATOR:
-                output_report.append('---------------------------------------------------------------')
-            align_name = ' ' * (max_length(data_list, 0) - len(name))
-            align_car = ' ' * (max_length(data_list, 1) - len(team))
-            str_out = '{: >2}. '.format(counter + 1)
-            str_out += f'{name} {align_name} |{team} {align_car} |{str_time}'
-            output_report.append(str_out)
-            counter += 1
+            if self.arguments.driver is None or self.arguments.driver == name:
+                align_name = ' ' * (max_length(data_list, 0) - len(name))
+                align_car = ' ' * (max_length(data_list, 1) - len(team))
+                str_out = '{: >2}. '.format(counter + 1)
+                str_out += f'{name} {align_name} |{team} {align_car} |{str_time}'
+                if counter == LINES_SEPARATOR:
+                    output_report.append('-' * max_str_len)
+                output_report.append(str_out)
+                if len(str_out) > max_str_len:
+                    max_str_len = len(str_out)
+                counter += 1
 
         if not self.arguments.asc:
             output_report.reverse()
@@ -204,7 +192,8 @@ def cli_parser(args=None):
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--asc', action='store_const', dest='asc', const=True, help='Order by asc (default)')
     group.add_argument('--desc', action='store_const', dest='asc', const=False, help='Order by desc')
-    parser.add_argument('--driver', nargs='*', action='append', help='Shows information only of particular driver')
+    parser.add_argument('--driver', help='Shows information only of particular driver')
+    # parser.add_argument('--driver', nargs='*', action='append', help='Shows information only of particular driver')
     parser.set_defaults(asc=True)
 
     return parser
@@ -231,6 +220,7 @@ def main():
     :return: None.
     """
     args = cli_parser().parse_args()
+    print(args)
     monaco_report = Report(args)
     print(*monaco_report.print_report(), sep='\n')
 
