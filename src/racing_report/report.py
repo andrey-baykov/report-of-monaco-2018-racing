@@ -137,20 +137,18 @@ class Report:
         :return: report ready to print.
         """
         data_list = self.build_report()
-        counter = 0
         output_report = []
-        LINES_SEPARATOR = 15
+        LINES_SEPARATOR = 16
         for num, value in enumerate(data_list, start=1):
             name, team, str_time = value
             if self.arguments.driver is None or self.arguments.driver == name:
-                str_out = '{: >2}. '.format(counter + 1)
+                str_out = '{: >2}. '.format(num)
                 str_out += '{: <20} |'.format(name)
                 str_out += '{: <30} |'.format(team)
                 str_out += '{}'.format(str_time)
-                if counter == LINES_SEPARATOR:
+                if num == LINES_SEPARATOR:
                     output_report.append('{:->66}'.format(''))
                 output_report.append(str_out)
-                counter += 1
 
         if not self.arguments.asc:
             output_report.reverse()
