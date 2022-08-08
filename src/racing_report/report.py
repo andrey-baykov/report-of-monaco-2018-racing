@@ -4,6 +4,15 @@ from dataclasses import dataclass
 from datetime import datetime
 
 
+class ReadFileException(Exception):
+    def __init__(self, message, errors):
+        self.message = message
+        self.error = errors
+
+    def __str__(self):
+        return self.message
+
+
 @dataclass
 class Driver:
 
@@ -26,20 +35,6 @@ class Driver:
         else:
             output = None
         return output
-
-    @staticmethod
-    def read_file(path) -> list:
-        """Read data from file.
-
-        :param path: path to file.
-        :return: all data from the file.
-        """
-
-        with open(path, 'r') as f:
-            output = {}
-            file_data = f.readlines()
-
-            return file_data
 
     @staticmethod
     def lines_parser(line) -> datetime:
@@ -77,9 +72,12 @@ class Report:
         :return: all data from the file.
         """
 
-        with open(path, 'r') as f:
-            file_data = f.readlines()
-            return file_data
+        try:
+            with open(path, 'r') as f:
+                file_data = f.readlines()
+                return file_data
+        except (PermissionError, FileExistsError, FileNotFoundError) as e:
+            raise ReadFileException('Cannot read file: ' + path, e)
 
     def set_abbreviations(self) -> None:
         """Function read drivers abbreviation from the file and fill out class dictionary.
@@ -142,18 +140,16 @@ class Report:
         counter = 0
         output_report = []
         LINES_SEPARATOR = 15
-        max_str_len = 0
-        for name, team, str_time in data_list:
+        for num, value in enumerate(data_list, start=1):
+            name, team, str_time = value
             if self.arguments.driver is None or self.arguments.driver == name:
-                align_name = ' ' * (max_length(data_list, 0) - len(name))
-                align_car = ' ' * (max_length(data_list, 1) - len(team))
                 str_out = '{: >2}. '.format(counter + 1)
-                str_out += f'{name} {align_name} |{team} {align_car} |{str_time}'
+                str_out += '{: <20} |'.format(name)
+                str_out += '{: <30} |'.format(team)
+                str_out += '{}'.format(str_time)
                 if counter == LINES_SEPARATOR:
-                    output_report.append('-' * max_str_len)
+                    output_report.append('{:->66}'.format(''))
                 output_report.append(str_out)
-                if len(str_out) > max_str_len:
-                    max_str_len = len(str_out)
                 counter += 1
 
         if not self.arguments.asc:
@@ -180,7 +176,7 @@ class Report:
         return output
 
 
-def cli_parser(args=None):
+def cli_parser():
     """Create command line parser.
 
     :param args: None - will read data from command line.
@@ -193,7 +189,6 @@ def cli_parser(args=None):
     group.add_argument('--asc', action='store_const', dest='asc', const=True, help='Order by asc (default)')
     group.add_argument('--desc', action='store_const', dest='asc', const=False, help='Order by desc')
     parser.add_argument('--driver', help='Shows information only of particular driver')
-    # parser.add_argument('--driver', nargs='*', action='append', help='Shows information only of particular driver')
     parser.set_defaults(asc=True)
 
     return parser
@@ -220,9 +215,12 @@ def main():
     :return: None.
     """
     args = cli_parser().parse_args()
-    print(args)
     monaco_report = Report(args)
-    print(*monaco_report.print_report(), sep='\n')
+    print(args)
+    try:
+        print(*monaco_report.print_report(), sep='\n')
+    except ReadFileException as e:
+        print(e.message)
 
 
 if __name__ == '__main__':

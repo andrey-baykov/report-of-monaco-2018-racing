@@ -16,6 +16,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+[tool.hatch.build.sources]
+"src/racing_report" = "racing_report"
 
 [project.urls]
 "Homepage" = "https://git.foxminded.com.ua/foxstudent102533/report-of-monaco-2018-racing"
