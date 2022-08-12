@@ -12,6 +12,7 @@ Package create a report from log files
 . By default, shows all drivers.
 
 ## Examples
+Run from command line
 ```commandline
 % python3 src/racing_report/report.py --files ./logs 
 % python3 src/racing_report/report.py --files ./logs --asc
@@ -19,3 +20,13 @@ Package create a report from log files
 % python3 src/racing_report/report.py --files ./logs --desc --driver Michael
 ```
 
+Run from package
+```python
+from racing_report import Report
+Report.print_report(files, asc, driver)
+```
+`files` - path to log files
+
+`asc` - True / False (True by defaul)
+
+`driver` - Name of driver (None by default)

@@ -14,6 +14,14 @@ class ReadFileException(Exception):
 
 
 @dataclass
+class Args:
+    def __init__(self):
+        self.files = None
+        self.asc = None
+        self.driver = None
+
+
+@dataclass
 class Driver:
 
     def __init__(self):
@@ -52,13 +60,13 @@ class Driver:
 class Report:
     """The creation of the Monaco Report and the related functionality."""
 
-    def __init__(self, args):
+    def __init__(self):
         """The initializer for the class.
 
         :param args: parsed arguments from command-line interface.
         """
 
-        self.arguments = args
+        self.arguments = Args()
         self.results_table = {}
         self.abbreviations = {}
         self.start = {}
@@ -73,7 +81,7 @@ class Report:
         """
 
         try:
-            with open(path, 'r') as f:
+            with open(path, mode="r", encoding="utf-8") as f:
                 file_data = f.readlines()
                 return file_data
         except (PermissionError, FileExistsError, FileNotFoundError) as e:
@@ -131,11 +139,14 @@ class Report:
         output_data = sorted(output, key=lambda x: x[2])
         return output_data
 
-    def print_report(self) -> list:
+    def print_report(self, files=None, asc=True, driver=None) -> list:
         """Format prepared report's data and print report.
 
         :return: report ready to print.
         """
+        self.arguments.files = files
+        self.arguments.asc = asc
+        self.arguments.driver = driver
         data_list = self.build_report()
         output_report = []
         LINES_SEPARATOR = 16
@@ -213,10 +224,9 @@ def main():
     :return: None.
     """
     args = cli_parser().parse_args()
-    monaco_report = Report(args)
-    print(args)
+    monaco_report = Report()
     try:
-        print(*monaco_report.print_report(), sep='\n')
+        print(*monaco_report.print_report(args.files, args.asc, args.driver), sep='\n')
     except ReadFileException as e:
         print(e.message)
 
